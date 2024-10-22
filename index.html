@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generate Gambar Berita For Instagram</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* Menata canvas */
+        #myCanvas {
+            border: 2px solid #ddd;
+            margin-top: 20px;
+            display: none; /* Canvas asli disembunyikan */
+        }
+        #previewCanvas {
+            border: 2px solid #ddd;
+            margin-top: 20px;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+            width: 300px; /* Ukuran pratinjau canvas lebih kecil */
+            height: 300px; /* Ukuran pratinjau canvas lebih kecil */
+        }
+        /* Menata tombol agar lebih ke atas */
+        #downloadButton {
+            margin-bottom: 20px; /* Menambahkan margin bawah agar ada jarak dengan canvas */
+        }
+        #cancelButton {
+            margin-top: 10px; /* Menambahkan margin untuk tombol cancel */
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="text-center text-primary mb-4">Generate Gambar Berita For Instagram</h1>
+
+        <!-- Keterangan -->
+        <div class="alert alert-info text-center">
+            <strong>Keterangan:</strong> Setelah mengisi <strong>URL Berita</strong> dan <strong>URL Gambar</strong>, opsi manual seperti headline, deskripsi, upload gambar, dan logo bersifat <strong>opsional</strong>.
+        </div>
+        
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <form id="urlForm" class="mb-4">
+                    <div class="mb-3">
+                        <label for="url" class="form-label">URL Berita</label>
+                        <input type="text" class="form-control" id="url" name="url" placeholder="Masukkan URL Berita">
+                    </div>
+                    <div class="mb-3">
+                        <label for="imageURL" class="form-label">URL Gambar</label>
+                        <input type="text" class="form-control" id="imageURL" name="imageURL" placeholder="Masukkan URL Gambar">
+                    </div>
+                    <div class="mb-3">
+                        <label for="uploadImage" class="form-label">Atau Upload Gambar Manual (Opsional)</label>
+                        <input type="file" class="form-control" id="uploadImage" name="uploadImage" accept="image/*">
+                        <button type="button" id="cancelButton" class="btn btn-warning w-100 mt-2">Batal Upload Gambar Manual</button> <!-- Tombol Batal -->
+                    </div>
+                    <div class="mb-3">
+                        <label for="logoURL" class="form-label">URL Logo (Opsional)</label>
+                        <input type="text" class="form-control" id="logoURL" name="logoURL" placeholder="Masukkan URL Logo (Opsional)">
+                    </div>
+                    <div class="mb-3">
+                        <label for="manualHeadline" class="form-label">Headline Manual (Opsional)</label>
+                        <input type="text" class="form-control" id="manualHeadline" name="manualHeadline" placeholder="Masukkan Headline secara manual (Opsional)">
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Deskripsi Tambahan (Opsional)</label>
+                        <textarea class="form-control" id="description" name="description" placeholder="Tambahkan deskripsi tambahan..." rows="4"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="bgColor" class="form-label">Pilih Warna Background</label>
+                        <input type="color" class="form-control form-control-color" id="bgColor" name="bgColor" value="#ffffff"> <!-- Color picker -->
+                    </div>
+                    <div class="mb-3">
+                        <label for="textColor" class="form-label">Pilih Warna Teks</label>
+                        <input type="color" class="form-control form-control-color" id="textColor" name="textColor" value="#000000"> <!-- Color picker untuk teks -->
+                    </div>
+                    <button type="submit" class="btn btn-success w-100">Generate Gambar</button>
+                </form>
+            </div>
+        </div>
+        <br>
+        <center><b>Apabila gambar reviews kosong (tidak tersedia) silahkan langsung klik download Gambar.</b></center>
+        <br>
+        <div class="row justify-content-center">
+            <div class="col-md-8 text-center">
+                <button id="downloadButton" class="btn btn-primary">Download Gambar</button> <!-- Tombol download -->
+            </div>
+        </div>
+
+        <!-- Canvas pratinjau kecil ditengah -->
+        <div class="row justify-content-center">
+            <div class="col-md-8 text-center">
+                <canvas id="previewCanvas" width="300" height="300"></canvas> <!-- Canvas untuk pratinjau -->
+            </div>
+        </div>
+
+        <canvas id="myCanvas" width="1080" height="1080"></canvas> <!-- Canvas untuk unduh, disembunyikan -->
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        const form = document.getElementById('urlForm');
+        const canvas = document.getElementById('myCanvas'); // Canvas asli untuk unduh
+        const previewCanvas = document.getElementById('previewCanvas'); // Canvas untuk pratinjau
+        const ctx = canvas.getContext('2d');
+        const previewCtx = previewCanvas.getContext('2d');
+        const downloadButton = document.getElementById('downloadButton');
+        const uploadImage = document.getElementById('uploadImage'); // Input file untuk upload manual
+        const cancelButton = document.getElementById('cancelButton'); // Tombol batal upload
+        const logoURL = document.getElementById('logoURL'); // URL untuk logo opsional
+
+        let uploadedImageSrc = null;
+        let logoImageSrc = null;
+
+        // Fungsi untuk menghandle upload gambar manual
+        uploadImage.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    uploadedImageSrc = event.target.result; // Mengambil gambar dari file yang diupload
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Fungsi untuk tombol batal upload gambar
+        cancelButton.addEventListener('click', function() {
+            uploadedImageSrc = null; // Reset gambar yang diupload
+            uploadImage.value = ''; // Mengosongkan input file
+            previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height); // Menghapus preview canvas
+        });
+
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const url = document.getElementById('url').value;
+            const imageURL = document.getElementById('imageURL').value;
+            const description = document.getElementById('description').value;
+            const bgColor = document.getElementById('bgColor').value; // Mengambil warna background yang dipilih
+            const textColor = document.getElementById('textColor').value; // Mengambil warna teks yang dipilih
+            const manualHeadline = document.getElementById('manualHeadline').value; // Headline manual
+            const logoSrc = logoURL.value; // Logo URL opsional
+
+            let headline = manualHeadline || "Judul tidak ditemukan"; // Default jika tidak ada headline
+
+            // Jika manualHeadline kosong, fetch dari URL
+            if (!manualHeadline && url) {
+                try {
+                    const response = await fetch(url);
+                    const text = await response.text();
+                    
+                    // Parsing HTML untuk mengekstrak judul
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(text, 'text/html');
+                    headline = doc.querySelector('title').innerText || "Judul tidak ditemukan";
+                } catch (error) {
+                    console.error("Error fetching URL:", error);
+                }
+            }
+
+            // Cek apakah ada file gambar yang diunggah atau menggunakan URL gambar
+            let newsImage = new Image();
+            if (uploadedImageSrc) {
+                // Jika ada file yang diunggah, gunakan file tersebut
+                newsImage.src = uploadedImageSrc;
+            } else if (imageURL) {
+                // Jika tidak ada file yang diunggah, gunakan URL gambar
+                newsImage.crossOrigin = "Anonymous";
+                newsImage.src = imageURL;
+            }
+
+            newsImage.onload = function() {
+                // Clear the canvas
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+
+                // Menggambar gambar berita di canvas asli (2/3 bagian canvas)
+                const imageHeight = (canvas.height / 3) * 2;
+                ctx.drawImage(newsImage, 0, 0, canvas.width, imageHeight);
+
+                // Menggunakan warna background yang dipilih
+                ctx.fillStyle = bgColor; 
+                ctx.fillRect(0, imageHeight, canvas.width, canvas.height - imageHeight);
+
+                // Mengatur properti teks untuk canvas asli
+                ctx.fillStyle = textColor; // Warna teks sesuai pilihan
+                ctx.font = "36px Arial"; // Headline lebih besar
+                wrapText(ctx, headline, 20, imageHeight + 60, canvas.width - 40, 40); // Teks headline
+                ctx.font = "28px Arial"; // Ukuran font deskripsi
+                wrapText(ctx, description, 20, imageHeight + 160, canvas.width - 40, 40); // Teks deskripsi
+                ctx.font = "24px Arial";
+                ctx.fillText('Sumber: ' + (new URL(url).hostname || ''), 20, canvas.height - 50); // Teks sumber
+
+                // Jika ada logo URL, tambahkan logo di kanan atas gambar
+                if (logoSrc) {
+                    let logoImage = new Image();
+                    logoImage.crossOrigin = "Anonymous";
+                    logoImage.src = logoSrc;
+                    logoImage.onload = function() {
+                        const logoSize = 100; // Ukuran logo
+                        ctx.drawImage(logoImage, canvas.width - logoSize - 20, 20, logoSize, logoSize); // Menempatkan logo di kanan atas
+                        previewCtx.drawImage(canvas, 0, 0, previewCanvas.width, previewCanvas.height); // Copy ke preview
+                    };
+                } else {
+                    // Copy konten dari canvas asli ke canvas preview dengan skala kecil
+                    previewCtx.drawImage(canvas, 0, 0, previewCanvas.width, previewCanvas.height);
+                }
+            };
+        });
+
+        // Fungsi untuk membungkus teks
+        function wrapText(context, text, x, y, maxWidth, lineHeight) {
+            const words = text.split(' ');
+            let line = '';
+            for (let n = 0; n < words.length; n++) {
+                const testLine = line + words[n] + ' ';
+                const metrics = context.measureText(testLine);
+                const testWidth = metrics.width;
+                if (testWidth > maxWidth && n > 0) {
+                    context.fillText(line, x, y);
+                    line = words[n] + ' ';
+                    y += lineHeight;
+                } else {
+                    line = testLine;
+                }
+            }
+            context.fillText(line, x, y);
+        }
+
+        // Fungsi untuk download gambar
+        downloadButton.addEventListener('click', function() {
+            const link = document.createElement('a');
+            link.download = 'gambar-berita.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        });
+    </script>
+</body>
+</html>
