@@ -26,7 +26,7 @@
         #downloadButton {
             margin-bottom: 20px; /* Menambahkan margin bawah agar ada jarak dengan canvas */
         }
-        #cancelButton {
+        #cancelButton, #cancelLogoUpload, #cancelWatermarkUpload {
             margin-top: 10px; /* Menambahkan margin untuk tombol cancel */
         }
     </style>
@@ -40,6 +40,11 @@
             <strong>Keterangan:</strong> Setelah mengisi <strong>URL Berita</strong> dan <strong>URL Gambar</strong>, opsi manual seperti headline, deskripsi, upload gambar, dan logo bersifat <strong>opsional</strong>.
             <br>
             <strong>Aktifkan CORS bila tidak berjalan ya guys</strong>
+        </div>
+
+          <!-- Keterangan -->
+          <div class="alert alert-info text-center">
+            <strong>Keterangan:</strong> ketika anda mengisi url berita dan url gambar tetapi mengisi isian manual maka dia akan menimpa data tersebut.</strong>
         </div>
         
         <div class="row justify-content-center">
@@ -56,11 +61,16 @@
                     <div class="mb-3">
                         <label for="uploadImage" class="form-label">Atau Upload Gambar Manual (Opsional)</label>
                         <input type="file" class="form-control" id="uploadImage" name="uploadImage" accept="image/*">
-                        <button type="button" id="cancelButton" class="btn btn-warning w-100 mt-2">Batal Upload Gambar Manual</button> <!-- Tombol Batal -->
+                        <button type="button" id="cancelButton" class="btn btn-warning w-100 mt-2">Batal Upload Gambar Manual</button>
                     </div>
                     <div class="mb-3">
                         <label for="logoURL" class="form-label">URL Logo (Opsional)</label>
                         <input type="text" class="form-control" id="logoURL" name="logoURL" placeholder="Masukkan URL Logo (Opsional)">
+                    </div>
+                    <div class="mb-3">
+                        <label for="uploadLogo" class="form-label">Atau Upload Logo Manual (Opsional)</label>
+                        <input type="file" class="form-control" id="uploadLogo" name="uploadLogo" accept="image/*">
+                        <button type="button" id="cancelLogoUpload" class="btn btn-warning w-100 mt-2">Batal Upload Logo Manual</button>
                     </div>
                     <div class="mb-3">
                         <label for="manualHeadline" class="form-label">Headline Manual (Opsional)</label>
@@ -70,14 +80,46 @@
                         <label for="description" class="form-label">Deskripsi Tambahan (Opsional)</label>
                         <textarea class="form-control" id="description" name="description" placeholder="Tambahkan deskripsi tambahan..." rows="4"></textarea>
                     </div>
+
+                    <!-- Input untuk sumber manual -->
+                    <div class="mb-3">
+                        <label for="manualSource" class="form-label">Sumber Manual (Opsional)</label>
+                        <input type="text" class="form-control" id="manualSource" name="manualSource" placeholder="Masukkan sumber berita secara manual (Opsional)">
+                    </div>
+
                     <div class="mb-3">
                         <label for="bgColor" class="form-label">Pilih Warna Background</label>
-                        <input type="color" class="form-control form-control-color" id="bgColor" name="bgColor" value="#ffffff"> <!-- Color picker -->
+                        <input type="color" class="form-control form-control-color" id="bgColor" name="bgColor" value="#ffffff">
                     </div>
                     <div class="mb-3">
                         <label for="textColor" class="form-label">Pilih Warna Teks</label>
-                        <input type="color" class="form-control form-control-color" id="textColor" name="textColor" value="#000000"> <!-- Color picker untuk teks -->
+                        <input type="color" class="form-control form-control-color" id="textColor" name="textColor" value="#000000">
                     </div>
+
+                    <!-- Pilihan untuk format teks: bold, italic, underline -->
+                    <div class="mb-3">
+                        <label class="form-label">Format Headline:</label>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="checkbox" id="bold" name="bold">
+                            <label class="form-check-label" for="bold">Bold</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="checkbox" id="italic" name="italic">
+                            <label class="form-check-label" for="italic">Italic</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="checkbox" id="underline" name="underline">
+                            <label class="form-check-label" for="underline">Underline</label>
+                        </div>
+                    </div>
+
+                    <!-- Input file untuk watermark -->
+                    <div class="mb-3">
+                        <label for="uploadWatermark" class="form-label">Upload Watermark (Opsional)</label>
+                        <input type="file" class="form-control" id="uploadWatermark" name="uploadWatermark" accept="image/*">
+                        <button type="button" id="cancelWatermarkUpload" class="btn btn-warning w-100 mt-2">Batal Upload Watermark</button>
+                    </div>
+
                     <button type="submit" class="btn btn-success w-100">Generate Gambar</button>
                 </form>
             </div>
@@ -87,18 +129,18 @@
         <br>
         <div class="row justify-content-center">
             <div class="col-md-8 text-center">
-                <button id="downloadButton" class="btn btn-primary">Download Gambar</button> <!-- Tombol download -->
+                <button id="downloadButton" class="btn btn-primary">Download Gambar</button>
             </div>
         </div>
 
         <!-- Canvas pratinjau kecil ditengah -->
         <div class="row justify-content-center">
             <div class="col-md-8 text-center">
-                <canvas id="previewCanvas" width="300" height="300"></canvas> <!-- Canvas untuk pratinjau -->
+                <canvas id="previewCanvas" width="300" height="300"></canvas>
             </div>
         </div>
 
-        <canvas id="myCanvas" width="1080" height="1080"></canvas> <!-- Canvas untuk unduh, disembunyikan -->
+        <canvas id="myCanvas" width="1080" height="1080"></canvas>
     </div>
 
     <!-- Bootstrap JS -->
@@ -106,25 +148,29 @@
 
     <script>
         const form = document.getElementById('urlForm');
-        const canvas = document.getElementById('myCanvas'); // Canvas asli untuk unduh
-        const previewCanvas = document.getElementById('previewCanvas'); // Canvas untuk pratinjau
+        const canvas = document.getElementById('myCanvas'); 
+        const previewCanvas = document.getElementById('previewCanvas'); 
         const ctx = canvas.getContext('2d');
         const previewCtx = previewCanvas.getContext('2d');
         const downloadButton = document.getElementById('downloadButton');
-        const uploadImage = document.getElementById('uploadImage'); // Input file untuk upload manual
-        const cancelButton = document.getElementById('cancelButton'); // Tombol batal upload
-        const logoURL = document.getElementById('logoURL'); // URL untuk logo opsional
-
+        const uploadImage = document.getElementById('uploadImage');
+        const cancelButton = document.getElementById('cancelButton');
+        const uploadLogo = document.getElementById('uploadLogo');
+        const cancelLogoUpload = document.getElementById('cancelLogoUpload');
+        const uploadWatermark = document.getElementById('uploadWatermark');
+        const cancelWatermarkUpload = document.getElementById('cancelWatermarkUpload');
+        const logoURL = document.getElementById('logoURL');
         let uploadedImageSrc = null;
-        let logoImageSrc = null;
+        let uploadedLogoSrc = null;
+        let uploadedWatermarkSrc = null;
 
-        // Fungsi untuk menghandle upload gambar manual
+        // Menghandle upload gambar manual
         uploadImage.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function(event) {
-                    uploadedImageSrc = event.target.result; // Mengambil gambar dari file yang diupload
+                    uploadedImageSrc = event.target.result; 
                 };
                 reader.readAsDataURL(file);
             }
@@ -132,9 +178,45 @@
 
         // Fungsi untuk tombol batal upload gambar
         cancelButton.addEventListener('click', function() {
-            uploadedImageSrc = null; // Reset gambar yang diupload
-            uploadImage.value = ''; // Mengosongkan input file
-            previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height); // Menghapus preview canvas
+            uploadedImageSrc = null;
+            uploadImage.value = ''; 
+            previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height); 
+        });
+
+        // Menghandle upload logo manual
+        uploadLogo.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    uploadedLogoSrc = event.target.result; 
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Fungsi untuk tombol batal upload logo
+        cancelLogoUpload.addEventListener('click', function() {
+            uploadedLogoSrc = null; 
+            uploadLogo.value = ''; 
+        });
+
+        // Menghandle upload watermark manual
+        uploadWatermark.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    uploadedWatermarkSrc = event.target.result; 
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Fungsi untuk tombol batal upload watermark
+        cancelWatermarkUpload.addEventListener('click', function() {
+            uploadedWatermarkSrc = null; 
+            uploadWatermark.value = ''; 
         });
 
         form.addEventListener('submit', async function(e) {
@@ -142,79 +224,103 @@
             const url = document.getElementById('url').value;
             const imageURL = document.getElementById('imageURL').value;
             const description = document.getElementById('description').value;
-            const bgColor = document.getElementById('bgColor').value; // Mengambil warna background yang dipilih
-            const textColor = document.getElementById('textColor').value; // Mengambil warna teks yang dipilih
-            const manualHeadline = document.getElementById('manualHeadline').value; // Headline manual
-            const logoSrc = logoURL.value; // Logo URL opsional
+            const bgColor = document.getElementById('bgColor').value; 
+            const textColor = document.getElementById('textColor').value; 
+            const manualHeadline = document.getElementById('manualHeadline').value; 
+            const manualSource = document.getElementById('manualSource').value;
+            const logoSrc = logoURL.value; 
+            
+            // Cek format teks yang dipilih (bold, italic, underline)
+            const isBold = document.getElementById('bold').checked;
+            const isItalic = document.getElementById('italic').checked;
+            const isUnderline = document.getElementById('underline').checked;
 
-            let headline = manualHeadline || "Judul tidak ditemukan"; // Default jika tidak ada headline
+            let headline = manualHeadline || "Judul tidak ditemukan"; 
+            let source = manualSource || "Sumber tidak ditemukan"; 
 
-            // Jika manualHeadline kosong, fetch dari URL
             if (!manualHeadline && url) {
                 try {
                     const response = await fetch(url);
                     const text = await response.text();
-                    
-                    // Parsing HTML untuk mengekstrak judul
                     const parser = new DOMParser();
                     const doc = parser.parseFromString(text, 'text/html');
                     headline = doc.querySelector('title').innerText || "Judul tidak ditemukan";
+                    source = new URL(url).hostname || manualSource;
                 } catch (error) {
                     console.error("Error fetching URL:", error);
                 }
             }
 
-            // Cek apakah ada file gambar yang diunggah atau menggunakan URL gambar
             let newsImage = new Image();
             if (uploadedImageSrc) {
-                // Jika ada file yang diunggah, gunakan file tersebut
                 newsImage.src = uploadedImageSrc;
             } else if (imageURL) {
-                // Jika tidak ada file yang diunggah, gunakan URL gambar
                 newsImage.crossOrigin = "Anonymous";
                 newsImage.src = imageURL;
             }
 
             newsImage.onload = function() {
-                // Clear the canvas
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
 
-                // Menggambar gambar berita di canvas asli (2/3 bagian canvas)
                 const imageHeight = (canvas.height / 3) * 2;
                 ctx.drawImage(newsImage, 0, 0, canvas.width, imageHeight);
 
-                // Menggunakan warna background yang dipilih
                 ctx.fillStyle = bgColor; 
                 ctx.fillRect(0, imageHeight, canvas.width, canvas.height - imageHeight);
 
-                // Mengatur properti teks untuk canvas asli
-                ctx.fillStyle = textColor; // Warna teks sesuai pilihan
-                ctx.font = "36px Arial"; // Headline lebih besar
-                wrapText(ctx, headline, 20, imageHeight + 60, canvas.width - 40, 40); // Teks headline
-                ctx.font = "28px Arial"; // Ukuran font deskripsi
-                wrapText(ctx, description, 20, imageHeight + 160, canvas.width - 40, 40); // Teks deskripsi
-                ctx.font = "24px Arial";
-                ctx.fillText('Sumber: ' + (new URL(url).hostname || ''), 20, canvas.height - 50); // Teks sumber
+                // Mengatur properti teks sesuai pilihan format
+                let headlineFont = isBold ? "bold " : "";
+                headlineFont += isItalic ? "italic " : "";
+                headlineFont += "50px Arial"; // Perbesar ukuran headline
 
-                // Jika ada logo URL, tambahkan logo di kanan atas gambar
-                if (logoSrc) {
+                ctx.fillStyle = textColor;
+                ctx.font = headlineFont; 
+                ctx.textBaseline = "top";
+                wrapText(ctx, headline, 20, imageHeight + 20, canvas.width - 40, 50); 
+
+                // Menggambar deskripsi
+                ctx.font = "28px Arial"; 
+                wrapText(ctx, description, 20, imageHeight + 160, canvas.width - 40, 40); 
+                
+                // Tampilkan sumber berita
+                ctx.font = "bold 24px Arial";
+                ctx.fillText('Sumber: ' + source, 20, canvas.height - 50); 
+
+                if (uploadedLogoSrc) {
+                    let logoImage = new Image();
+                    logoImage.src = uploadedLogoSrc;
+                    logoImage.onload = function() {
+                        const logoSize = 100; 
+                        ctx.drawImage(logoImage, canvas.width - logoSize - 20, 20, logoSize, logoSize); 
+                        previewCtx.drawImage(canvas, 0, 0, previewCanvas.width, previewCanvas.height);
+                    };
+                } else if (logoSrc) {
                     let logoImage = new Image();
                     logoImage.crossOrigin = "Anonymous";
-                    logoImage.src = logoSrc;
+                    logoImage.src = logoSrc; 
                     logoImage.onload = function() {
-                        const logoSize = 100; // Ukuran logo
-                        ctx.drawImage(logoImage, canvas.width - logoSize - 20, 20, logoSize, logoSize); // Menempatkan logo di kanan atas
-                        previewCtx.drawImage(canvas, 0, 0, previewCanvas.width, previewCanvas.height); // Copy ke preview
+                        const logoSize = 100;
+                        ctx.drawImage(logoImage, canvas.width - logoSize - 20, 20, logoSize, logoSize); 
+                        previewCtx.drawImage(canvas, 0, 0, previewCanvas.width, previewCanvas.height);
                     };
                 } else {
-                    // Copy konten dari canvas asli ke canvas preview dengan skala kecil
                     previewCtx.drawImage(canvas, 0, 0, previewCanvas.width, previewCanvas.height);
+                }
+
+                // Tambahkan watermark di pojok kanan bawah jika ada file yang diupload
+                if (uploadedWatermarkSrc) {
+                    let watermarkImage = new Image();
+                    watermarkImage.src = uploadedWatermarkSrc;
+                    watermarkImage.onload = function() {
+                        const watermarkSize = 80; // Sesuaikan ukuran watermark
+                        ctx.drawImage(watermarkImage, canvas.width - watermarkSize - 20, canvas.height - watermarkSize - 20, watermarkSize, watermarkSize); 
+                        previewCtx.drawImage(canvas, 0, 0, previewCanvas.width, previewCanvas.height);
+                    };
                 }
             };
         });
 
-        // Fungsi untuk membungkus teks
         function wrapText(context, text, x, y, maxWidth, lineHeight) {
             const words = text.split(' ');
             let line = '';
@@ -233,7 +339,6 @@
             context.fillText(line, x, y);
         }
 
-        // Fungsi untuk download gambar
         downloadButton.addEventListener('click', function() {
             const link = document.createElement('a');
             link.download = 'gambar-berita.png';
